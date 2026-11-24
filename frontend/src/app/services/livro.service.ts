@@ -19,6 +19,10 @@ export class LivroService {
     return this.http.post<Livro>(this.apiUrl, livro);
   }
 
+  editar(id: number, livro: Livro): Observable<Livro> {
+    return this.http.put<Livro>(`${this.apiUrl}/${id}`, livro);
+  }
+
   emprestar(id: number): Observable<Livro> {
     return this.http.post<Livro>(`${this.apiUrl}/${id}/emprestar`, {});
   }
@@ -31,3 +35,5 @@ export class LivroService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }
+
+

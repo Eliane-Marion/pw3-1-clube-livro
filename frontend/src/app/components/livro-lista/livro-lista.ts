@@ -1,19 +1,29 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LivroService } from '../../services/livro.service';
 import { Livro } from '../../models/livro.model';
 
 @Component({
   selector: 'app-livro-lista',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './livro-lista.component.html',
   styleUrl: './livro-lista.component.css'
 })
 export class LivroListaComponent implements OnInit {
   livros: Livro[] = [];
+  formulario!: FormGroup;
+  idEditando: number | null = null;
+  mensagem = '';
+  erro = '';
 
-  constructor(private livroService: LivroService) {}
+  constructor(private livroService: LivroService, private fb: FormBuilder) {
+    this.formulario = this.fb.nonNullable.group({
+      titulo: ['', Validators.required],
+      dono: ['', Validators.required]
+    });
+  }
 
   ngOnInit(): void {
     this.carregarLivros();
@@ -23,6 +33,48 @@ export class LivroListaComponent implements OnInit {
     this.livroService.listarTodos().subscribe(dados => {
       this.livros = dados;
     });
+  }
+
+  salvar(): void {
+    this.mensagem = '';
+    this.erro = '';
+
+    if (this.formulario.invalid) {
+      this.formulario.markAllAsTouched();
+      return;
+    }
+
+    const livro: Livro = this.formulario.getRawValue();
+    const editando = this.idEditando !== null;
+    const pedido = editando
+      ? this.livroService.editar(this.idEditando!, livro)
+      : this.livroService.cadastrar(livro);
+
+    pedido.subscribe({
+      next: () => {
+        this.mensagem = editando ? 'Livro atualizado!' : 'Livro cadastrado!';
+        this.idEditando = null;
+        this.formulario.reset();
+        this.carregarLivros();
+      },
+      error: () => {
+        this.erro = 'Não foi possível salvar o livro.';
+      }
+    });
+  }
+
+  editar(livro: Livro): void {
+    this.idEditando = livro.id!;
+    this.formulario.setValue({ titulo: livro.titulo, dono: livro.dono });
+    this.mensagem = '';
+    this.erro = '';
+  }
+
+  cancelarEdicao(): void {
+    this.idEditando = null;
+    this.formulario.reset();
+    this.mensagem = '';
+    this.erro = '';
   }
 
   emprestar(id: number): void {
